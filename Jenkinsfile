@@ -1,40 +1,28 @@
-#!/usr/bin/env groovy
 pipeline {
-  agent any
-
-  stages {
-    stage("Build") {
-      steps {
-        sh 'mvn -v'
-      }
+    agent any
+    tools {
+        maven 'Maven 3.3.9'
+        jdk 'jdk8'
     }
+    stages {
+        stage ('Initialize') {
+            steps {
+                sh '''
+                    echo "PATH = ${PATH}"
+                    echo "M2_HOME = ${M2_HOME}"
+                '''
+            }
+        }
 
-    stage("Testing") {
-      parallel {
-        stage("Unit Tests") {
-          agent { docker 'openjdk:7-jdk-alpine' }
-          steps {
-            sh 'java -version'
-          }
+        stage ('Build') {
+            steps {
+                sh 'mvn -Dmaven.test.failure.ignore=true install' 
+            }
+            post {
+                success {
+                    junit 'target/surefire-reports/**/*.xml' 
+                }
+            }
         }
-        stage("Functional Tests") {
-          agent { docker 'openjdk:8-jdk-alpine' }
-          steps {
-            sh 'java -version'
-          }
-        }
-        stage("Integration Tests") {
-          steps {
-            sh 'java -version'
-          }
-        }
-      }
     }
-
-    stage("Deploy") {
-      steps {
-        echo "Deploy!"
-      }
-    }
-  }
 }
